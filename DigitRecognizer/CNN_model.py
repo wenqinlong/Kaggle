@@ -3,7 +3,6 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-import matplotlib.cm as cm
 from sklearn.model_selection import train_test_split
 from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, \
@@ -13,18 +12,21 @@ from tensorflow.keras.callbacks import ReduceLROnPlateau
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 
 
-train = pd.read_csv("./digit-recognizer/train.csv")  # don't forget the dot "."
-# print(train.shape)  # (42000, 785)
-test = pd.read_csv("./digit-recognizer/test.csv")
-# print(test.shape)   # (28000, 784)
+train = pd.read_csv("./digit_recognizer/train.csv")  # don't forget the dot "."
+test = pd.read_csv("./digit_recognizer/test.csv")
+print(train.shape)   # (42000, 785)
+print(test.shape)    # (28000, 784)
+
 y_train = train["label"]
-# print(y_train)  # Name: label, Length: 42000, dtype: int64
+
 x_train = train.drop(labels=["label"], axis=1)
 del train  # free some space
 
+# show the training data distribution
 # y_train.value_counts().sort_index().plot.bar()
 # plt.show()
 
+# check the data
 # print(x_train.isnull().any().describe())
 # print(test.isnull().any().describe())
 
@@ -36,6 +38,7 @@ test = test / 255.0
 x_train = x_train.values.reshape(-1, 28, 28, 1)
 test = test.values.reshape(-1, 28, 28, 1)
 
+# Encode labels to one hot vectors (ex : 2 -> [0,0,1,0,0,0,0,0,0,0]
 y_train = tf.keras.utils.to_categorical(y_train, num_classes=10)
 
 # split train set and test set
@@ -115,7 +118,6 @@ model = MyModel()
 optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 loss = tf.keras.losses.categorical_crossentropy
 model.compile(optimizer=optimizer, loss=loss, metrics=["acc"])
-
 learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             patience=3,
                                             verbose=1,
@@ -123,7 +125,7 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             min_lr=0.00001)
 
 epochs = 1
-batch_size = 86
+batch_size = 84
 
 datagen = ImageDataGenerator(featurewise_center=False,
                              samplewise_center=False,
@@ -138,19 +140,29 @@ datagen = ImageDataGenerator(featurewise_center=False,
                              vertical_flip=False)
 datagen.fit(x_train)
 
-history = model.fit(x_train, y_train, batch_size=batch_size,
+history = model.fit(datagen.flow(x_train, y_train, batch_size=batch_size),
                     epochs=epochs, validation_data=(x_val, y_val),
                     verbose=2, steps_per_epoch=x_train.shape[0] // batch_size,
                     callbacks=[learning_rate_reduction])
 
-
 results = model.predict(test)
-results = np.argmax(results, axis=1)
+results = np.argmax(results, axis=1)   # Returns the indices of the maximum values along an axis.
 results = pd.Series(results, name="Label")
 submission = pd.concat([pd.Series(range(1, 28001), name="ImageId"), results], axis=1)
-
 submission.to_csv("cnn_mnist.csv", index=False)
 
+# Evaluate the model
+fig, ax = plt.subplots(2, 1)
+ax[0].plot(history.history["loss"], color = "b", label = "Training loss")
+ax[0].plot(history.history["val_loss"], color="r", label="Validation loss")
+legend = ax[0].legend(loc="best", shadow=True)
+
+ax[1].plot(history.history["acc"], color="b", label="Training accuracy")
+ax[1].plot(history.history["val_acc"], color="r", label="Validation accuracy")
+legend = ax[1].legend(loc="best", shadow=True)
+plt.savefig("loss_acc.png", dpi=150)
+
+# Confusion matrix
 
 
 
