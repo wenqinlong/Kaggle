@@ -8,8 +8,11 @@ from tensorflow.keras import Model
 from tensorflow.keras.layers import Dense, Flatten, Conv2D, \
     BatchNormalization, Activation, MaxPool2D, Dropout
 from tensorflow.keras.optimizers import RMSprop
-from tensorflow.keras.callbacks import ReduceLROnPlateau
+from tensorflow.keras.callbacks import ReduceLROnPlateau, EarlyStopping, TensorBoard
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from sklearn.metrics import confusion_matrix
+import itertools
+import datetime
 
 
 train = pd.read_csv("./digit_recognizer/train.csv")  # don't forget the dot "."
@@ -123,6 +126,12 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             verbose=1,
                                             factor=0.5,
                                             min_lr=0.00001)
+early_stopper = EarlyStopping(monitor="val_loss", min_delta=0,
+                              patience=1, verbose=1, mode="auto",
+                              baseline=None, restore_best_weights=False)  # paticnce: Number of epochs with no improvement after which training will be stopped.
+# tensorboard
+log_dir = "./logs" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 epochs = 1
 batch_size = 84
@@ -143,7 +152,7 @@ datagen.fit(x_train)
 history = model.fit(datagen.flow(x_train, y_train, batch_size=batch_size),
                     epochs=epochs, validation_data=(x_val, y_val),
                     verbose=2, steps_per_epoch=x_train.shape[0] // batch_size,
-                    callbacks=[learning_rate_reduction])
+                    callbacks=[learning_rate_reduction, early_stopper, tensorboard])
 
 results = model.predict(test)
 results = np.argmax(results, axis=1)   # Returns the indices of the maximum values along an axis.
@@ -152,17 +161,54 @@ submission = pd.concat([pd.Series(range(1, 28001), name="ImageId"), results], ax
 submission.to_csv("cnn_mnist.csv", index=False)
 
 # Evaluate the model
-fig, ax = plt.subplots(2, 1)
-ax[0].plot(history.history["loss"], color = "b", label = "Training loss")
-ax[0].plot(history.history["val_loss"], color="r", label="Validation loss")
-legend = ax[0].legend(loc="best", shadow=True)
+def plot_loss_acc(his):
+    fig, ax = plt.subplots(2, 1)
+    ax[0].plot(his.history["loss"], color = "b", label = "Training loss")
+    ax[0].plot(his.history["val_loss"], color="r", label="Validation loss")
+    legend = ax[0].legend(loc="best", shadow=True)
 
-ax[1].plot(history.history["acc"], color="b", label="Training accuracy")
-ax[1].plot(history.history["val_acc"], color="r", label="Validation accuracy")
-legend = ax[1].legend(loc="best", shadow=True)
-plt.savefig("loss_acc.png", dpi=150)
+    ax[1].plot(his.history["acc"], color="b", label="Training accuracy")
+    ax[1].plot(his.history["val_acc"], color="r", label="Validation accuracy")
+    legend = ax[1].legend(loc="best", shadow=True)
+    plt.savefig("loss_acc.png", dpi=150)
+
+
+plot_loss_acc(history)
 
 # Confusion matrix
+def plot_confusion_matrix(cm, classes, title="Confusion matrix",
+                          normalize=False, cmap=plt.cm.Blues):
+    accuracy = np.trace(cm) / float(np.sum(cm))
+    misclass = 1 - accuracy
+
+    plt.figure()
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    x_tick = (str(i)+" p={:0.4}".format(cm[i][i]/float(np.sum(cm[:,i]))) for i in range(len(classes)))  # p for precision
+    y_tick = (str(j)+" r={:0.4}".format(cm[j][j]/float(np.sum(cm[j,:]))) for j in range(len(classes)))  # r for recall
+    plt.xticks(tick_marks, x_tick, rotation=45)
+    plt.yticks(tick_marks, y_tick)
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, cm[i, j],
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+    plt.xlabel("Predicted label\naccuracy={:0.4f}; misclass={:0.4f}".format(accuracy, misclass))
+    plt.ylabel("True label")
+    plt.tight_layout()
+    plt.savefig(title+".png", dpi=150)
+
+
+y_pred = model.predict(x_val)
+y_pred_classes = np.argmax(y_pred, axis=1)
+y_true = np.argmax(y_val, axis=1)
+confusion_mtx = confusion_matrix(y_true, y_pred_classes)
+plot_confusion_matrix(confusion_mtx, classes=range(10))
+
+# tensorboard --logdir='/Users/wql/PycharmProjects/learning/MLAlgrithom/Kaggle/DigitRecognizer/logs20200703-180236' --port=8008
+
 
 
 
