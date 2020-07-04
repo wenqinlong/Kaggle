@@ -129,12 +129,13 @@ learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
 early_stopper = EarlyStopping(monitor="val_loss", min_delta=0,
                               patience=1, verbose=1, mode="auto",
                               baseline=None, restore_best_weights=False)  # paticnce: Number of epochs with no improvement after which training will be stopped.
-# tensorboard
-log_dir = "./logs" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 epochs = 1
 batch_size = 84
+
+# tensorboard
+log_dir = "./logs" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 datagen = ImageDataGenerator(featurewise_center=False,
                              samplewise_center=False,
@@ -147,18 +148,22 @@ datagen = ImageDataGenerator(featurewise_center=False,
                              height_shift_range=0.1,
                              horizontal_flip=False,
                              vertical_flip=False)
-datagen.fit(x_train)
 
+datagen.fit(x_train)
 history = model.fit(datagen.flow(x_train, y_train, batch_size=batch_size),
                     epochs=epochs, validation_data=(x_val, y_val),
                     verbose=2, steps_per_epoch=x_train.shape[0] // batch_size,
                     callbacks=[learning_rate_reduction, early_stopper, tensorboard])
-
+model.summary()
 results = model.predict(test)
 results = np.argmax(results, axis=1)   # Returns the indices of the maximum values along an axis.
 results = pd.Series(results, name="Label")
 submission = pd.concat([pd.Series(range(1, 28001), name="ImageId"), results], axis=1)
 submission.to_csv("cnn_mnist.csv", index=False)
+
+
+# save model
+model.save("model")
 
 # Evaluate the model
 def plot_loss_acc(his):
@@ -171,9 +176,6 @@ def plot_loss_acc(his):
     ax[1].plot(his.history["val_acc"], color="r", label="Validation accuracy")
     legend = ax[1].legend(loc="best", shadow=True)
     plt.savefig("loss_acc.png", dpi=150)
-
-
-plot_loss_acc(history)
 
 # Confusion matrix
 def plot_confusion_matrix(cm, classes, title="Confusion matrix",
@@ -200,21 +202,15 @@ def plot_confusion_matrix(cm, classes, title="Confusion matrix",
     plt.tight_layout()
     plt.savefig(title+".png", dpi=150)
 
-
+# Prediction
 y_pred = model.predict(x_val)
 y_pred_classes = np.argmax(y_pred, axis=1)
 y_true = np.argmax(y_val, axis=1)
 confusion_mtx = confusion_matrix(y_true, y_pred_classes)
+plot_loss_acc(history)
 plot_confusion_matrix(confusion_mtx, classes=range(10))
 
 # tensorboard --logdir='/Users/wql/PycharmProjects/learning/MLAlgrithom/Kaggle/DigitRecognizer/logs20200703-180236' --port=8008
-
-
-
-
-
-
-
 
 
 
