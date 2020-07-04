@@ -60,7 +60,7 @@ for i in range(len(extracted_layers)):
 model = Sequential(extracted_layers)
 optimizer = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 loss = tf.keras.losses.categorical_crossentropy
-model.compile(optimizer="adam", loss=loss, metrics="acc")
+model.compile(optimizer=optimizer, loss=loss, metrics="acc")
 learning_rate_reduction = ReduceLROnPlateau(monitor='val_acc',
                                             patience=3,
                                             verbose=1,

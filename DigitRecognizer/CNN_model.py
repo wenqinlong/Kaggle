@@ -155,13 +155,6 @@ history = model.fit(datagen.flow(x_train, y_train, batch_size=batch_size),
                     verbose=2, steps_per_epoch=x_train.shape[0] // batch_size,
                     callbacks=[learning_rate_reduction, early_stopper, tensorboard])
 model.summary()
-results = model.predict(test)
-results = np.argmax(results, axis=1)   # Returns the indices of the maximum values along an axis.
-results = pd.Series(results, name="Label")
-submission = pd.concat([pd.Series(range(1, 28001), name="ImageId"), results], axis=1)
-submission.to_csv("cnn_mnist.csv", index=False)
-
-
 # save model
 model.save("model")
 
@@ -177,40 +170,7 @@ def plot_loss_acc(his):
     legend = ax[1].legend(loc="best", shadow=True)
     plt.savefig("loss_acc.png", dpi=150)
 
-# Confusion matrix
-def plot_confusion_matrix(cm, classes, title="Confusion matrix",
-                          normalize=False, cmap=plt.cm.Blues):
-    accuracy = np.trace(cm) / float(np.sum(cm))
-    misclass = 1 - accuracy
 
-    plt.figure()
-    plt.imshow(cm, interpolation='nearest', cmap=cmap)
-    plt.title(title)
-    plt.colorbar()
-    tick_marks = np.arange(len(classes))
-    x_tick = (str(i)+" p={:0.4}".format(cm[i][i]/float(np.sum(cm[:,i]))) for i in range(len(classes)))  # p for precision
-    y_tick = (str(j)+" r={:0.4}".format(cm[j][j]/float(np.sum(cm[j,:]))) for j in range(len(classes)))  # r for recall
-    plt.xticks(tick_marks, x_tick, rotation=45)
-    plt.yticks(tick_marks, y_tick)
-    thresh = cm.max() / 2.
-    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
-        plt.text(j, i, cm[i, j],
-                 horizontalalignment="center",
-                 color="white" if cm[i, j] > thresh else "black")
-    plt.xlabel("Predicted label\naccuracy={:0.4f}; misclass={:0.4f}".format(accuracy, misclass))
-    plt.ylabel("True label")
-    plt.tight_layout()
-    plt.savefig(title+".png", dpi=150)
-
-# Prediction
-y_pred = model.predict(x_val)
-y_pred_classes = np.argmax(y_pred, axis=1)
-y_true = np.argmax(y_val, axis=1)
-confusion_mtx = confusion_matrix(y_true, y_pred_classes)
 plot_loss_acc(history)
-plot_confusion_matrix(confusion_mtx, classes=range(10))
 
 # tensorboard --logdir='/Users/wql/PycharmProjects/learning/MLAlgrithom/Kaggle/DigitRecognizer/logs20200703-180236' --port=8008
-
-
-
