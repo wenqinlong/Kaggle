@@ -161,7 +161,7 @@ datagen = ImageDataGenerator(featurewise_center=False,
 
 history = model.fit(train_dataset, epochs=EPOCHS,
                     validation_data=val_dataset,
-                    verbose=2, steps_per_epoch=28984//BATCH_SIZE, validation_steps=4142//BATCH_SIZE,
+                    verbose=0, steps_per_epoch=28984//BATCH_SIZE, validation_steps=4142//BATCH_SIZE,
                     callbacks=[learning_rate_reduction, early_stopper, tensorboard])
 model.summary()
 test_images = test_dataset.map(lambda image, id_num: image)
