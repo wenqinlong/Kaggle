@@ -174,3 +174,4 @@ def plot_loss_acc(his):
 plot_loss_acc(history)
 
 # tensorboard --logdir='/Users/wql/PycharmProjects/learning/MLAlgrithom/Kaggle/DigitRecognizer/logs20200703-180236' --port=8008
+# tensorboard --logdir=E:\\PyProjects\\Kaggle\\SIIM-ISIC_Melanoma_Classification\\logs --port=8008   # without single quotation marks

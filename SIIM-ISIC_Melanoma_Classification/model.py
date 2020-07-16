@@ -10,9 +10,10 @@ from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau, TensorB
 from tensorflow.keras.layers import MaxPool2D, Conv2D, Dense, BatchNormalization, Activation, Flatten
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
 
 EPOCHS = 1
-BATCH_SIZE = 5
+BATCH_SIZE = 16
 
 train_val_files_path = './tfrecords/train*.tfrec'
 test_files_path = './tfrecords/test*.tfrec'
@@ -36,6 +37,7 @@ test_dataset = mu.load_dataset(files=test_files, batch_size=BATCH_SIZE, epochs=0
 # for x_train, y_train in train_dataset:
 #     print(x_train.shape, y_train.shape)    # (32, 1024, 1024, 3) (32,)
 
+kernel_size = (3, 3)
 
 class MyModel(Model):
     def get_config(self):
@@ -43,28 +45,28 @@ class MyModel(Model):
 
     def __init__(self):
         super(MyModel, self).__init__()
-        self.conv1 = Conv2D(filters=32, kernel_size=(5, 5), padding="same")
+        self.conv1 = Conv2D(filters=2, kernel_size=kernel_size, padding="same")
         self.bn1 = BatchNormalization()
         self.ac1 = Activation(tf.nn.relu)
         self.pool1 = MaxPool2D(pool_size=(2, 2))
 
-        self.conv2 = Conv2D(filters=64, kernel_size=(5, 5), padding="same")
+        self.conv2 = Conv2D(filters=4, kernel_size=kernel_size, padding="same")
         self.bn2 = BatchNormalization()
         self.ac2 = Activation(tf.nn.relu)
         self.pool2 = MaxPool2D(pool_size=(2, 2))
 
-        self.conv3 = Conv2D(filters=128, kernel_size=(5, 5), padding="same")
+        self.conv3 = Conv2D(filters=8, kernel_size=kernel_size, padding="same")
         self.bn3 = BatchNormalization()
         self.ac3 = Activation(tf.nn.relu)
         self.pool3 = MaxPool2D(pool_size=(2, 2))
 
-        self.conv4 = Conv2D(filters=256, kernel_size=(5, 5), padding="same")
+        self.conv4 = Conv2D(filters=16, kernel_size=kernel_size, padding="same")
         self.bn4 = BatchNormalization()
         self.ac4 = Activation(tf.nn.relu)
         self.pool4 = MaxPool2D(pool_size=(2, 2))
 
         self.flatten = Flatten()
-        self.dense1 = Dense(256)
+        self.dense1 = Dense(2)
         self.bn5 = BatchNormalization()
         self.ac5 = Activation(tf.nn.relu)
         self.dense2 = Dense(1)
@@ -142,8 +144,9 @@ learning_rate_reduction = ReduceLROnPlateau(monitor="val_accuracy",
 early_stopper = EarlyStopping(monitor="val_accuracy", min_delta=0,
                               patience=3, verbose=1, mode="auto",
                               baseline=None, restore_best_weights=False)
-
-log_dir = "./logs"
+log_dir = "logs"
+if not os.path.exists(log_dir):
+    os.mkdir(log_dir)
 tensorboard = TensorBoard(log_dir=log_dir, histogram_freq=1)
 datagen = ImageDataGenerator(featurewise_center=False,
                              samplewise_center=False,
@@ -161,11 +164,21 @@ datagen = ImageDataGenerator(featurewise_center=False,
 
 history = model.fit(train_dataset, epochs=EPOCHS,
                     validation_data=val_dataset,
-                    verbose=0, steps_per_epoch=28984//BATCH_SIZE, validation_steps=4142//BATCH_SIZE,
+                    verbose=1, steps_per_epoch=28984//BATCH_SIZE, validation_steps=4142//BATCH_SIZE,
                     callbacks=[learning_rate_reduction, early_stopper, tensorboard])
 model.summary()
-test_images = test_dataset.map(lambda image, id_num: image)
-y_pred = model.predict(test_images)
+model.save("saved_model")
+# test_images = test_dataset.map(lambda image, id_num: image)
+# y_pred = model.predict(test_images)
+# test_ids_ds = test_dataset.map(lambda image, idnum: idnum).unbatch()
+# test_ids = next(iter(test_ids_ds.batch(4142))).numpy().astype('U')
+#
+# sub = pd.read_csv('sample_submission.csv')
+#
+# pred_df = pd.DataFrame({'image_name': test_ids, 'target': np.concatenate(y_pred)})
+#
+# del sub['target']
+# sub = sub.merge(pred_df, on='image_name')
+# sub.to_csv('submission.csv', index=False)
 
-# submission = pd.read_csv
-# model.save("model")
+

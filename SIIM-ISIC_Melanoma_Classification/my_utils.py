@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from functools import partial
 import re
 from glob import glob
+# import tensorflow_addons as tfa
 
 
 train_csv = pd.read_csv("train.csv")  # [33126 rows x 8 columns]
@@ -30,30 +31,10 @@ def decode_image(image):
     return image
 
 
-def read_tfrecord(example, labeled):
-    if labeled:
-        tfrecord_format = {
-            "image": tf.io.FixedLenFeature([], tf.string),
-            "target": tf.io.FixedLenFeature([], tf.int64)
-        }
-    else:
-        tfrecord_format = {
-            "image": tf.io.FixedLenFeature([], tf.string),
-            "image_name": tf.io.FixedLenFeature([], tf.int64)
-        }
-    example = tf.io.parse_single_example(example, tfrecord_format)
-    image = decode_image(example["image"])
-    if labeled:
-        label = tf.cast(example["target"], tf.int32)
-        return image, label
-    id_name = example["image_name"]
-    return image, id_name
-
 
 def augmentation_pipeline(image, label):
+    # image = tf.keras.preprocessing.image.random_rotation(x=image, rg=90)
     image = tf.image.random_flip_left_right(image)
-    image = tf.image.rot90(image)
-    # image = tf.keras.preprocessing.image.random_zoom(image, (0.1, 0.1))
     return image, label
 
 
@@ -84,7 +65,7 @@ def load_dataset(files, batch_size, epochs, training=False, validation=False, te
     if training:
         dataset = dataset.map(augmentation_pipeline)
         dataset = dataset.repeat(epochs)
-        dataset = dataset.shuffle(32)
+        dataset = dataset.shuffle(500)
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(batch_size)
 
