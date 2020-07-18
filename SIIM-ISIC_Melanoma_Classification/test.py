@@ -25,10 +25,12 @@ model.summary()
 
 test_images = test_dataset.map(lambda image, id_num: image)
 y_pred = model.predict(test_images)
+print(y_pred.shape)
 test_ids_ds = test_dataset.map(lambda image, idnum: idnum).unbatch()
-test_ids = next(iter(test_ids_ds.batch(4142))).numpy().astype('U')
+test_ids = next(iter(test_ids_ds.batch(10982))).numpy().astype('U')
 
 sub = pd.read_csv('sample_submission.csv')
+print(sub.shape)
 pred_df = pd.DataFrame({'image_name': test_ids, 'target': np.concatenate(y_pred)})
 
 del sub['target']

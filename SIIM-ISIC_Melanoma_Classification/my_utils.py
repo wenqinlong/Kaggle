@@ -20,7 +20,6 @@ train_val_files_path = './tfrecords/train*.tfrec'
 test_files_path = './tfrecords/test*.tfrec'
 
 train_files, val_files = train_test_split(glob(train_val_files_path), test_size=0.1, random_state=2)
-print(train_files, val_files)
 test_files = glob(test_files_path)
 
 
@@ -31,10 +30,9 @@ def decode_image(image):
     return image
 
 
-
 def augmentation_pipeline(image, label):
-    # image = tf.keras.preprocessing.image.random_rotation(x=image, rg=90)
     image = tf.image.random_flip_left_right(image)
+    image = tf.image.random_flip_up_down(image)
     return image, label
 
 
@@ -88,8 +86,16 @@ def count_data_items(filenames):
 
 if __name__ == "__main__":
     num_training_images = count_data_items(train_files)
-    num_test_images = count_data_items(val_files)
+    num_test_images = count_data_items(test_files)
     print(num_training_images, num_test_images)
+
+    train_dataset = load_dataset(train_files, batch_size=0, epochs=1, training=True)
+    train_image = train_dataset.map(lambda image, target: image)
+    print(train_dataset.shape)
+
+
+
+
 
 
 

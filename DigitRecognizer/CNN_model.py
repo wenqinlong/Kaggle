@@ -161,7 +161,7 @@ model.save("model")
 # Evaluate the model
 def plot_loss_acc(his):
     fig, ax = plt.subplots(2, 1)
-    ax[0].plot(his.history["loss"], color = "b", label = "Training loss")
+    ax[0].plot(his.history["loss"], color="b", label = "Training loss")
     ax[0].plot(his.history["val_loss"], color="r", label="Validation loss")
     legend = ax[0].legend(loc="best", shadow=True)
 
